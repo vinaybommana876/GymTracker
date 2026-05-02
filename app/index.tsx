@@ -17,7 +17,7 @@ export default function Index() {
     <View className="flex-1 bg-[#060814] items-center justify-center p-5">
       <ActivityIndicator size="large" color="#38BDF8" />
       <Text className="mt-4 text-[#E2E8F0] text-base">
-        Redirecting to splash...
+        Loading...
       </Text>
     </View>
   );

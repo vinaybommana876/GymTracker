@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import { useEffect, useRef } from "react";
@@ -11,11 +10,13 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 
+import { useTheme } from "@/hooks/use-theme"; // ✅ central theme hook
+
 export default function Splash() {
   const router = useRouter();
   const animation = useRef<LottieView>(null);
 
-  const isDark = useColorScheme() === "dark";
+  const theme = useTheme(); 
 
   const scale = useSharedValue(0.7);
   const opacity = useSharedValue(0);
@@ -26,11 +27,15 @@ export default function Splash() {
   }));
 
   useEffect(() => {
-    scale.value = withTiming(1, { duration: 1200, easing: Easing.out(Easing.exp) });
+    scale.value = withTiming(1, {
+      duration: 1200,
+      easing: Easing.out(Easing.exp),
+    });
+
     opacity.value = withTiming(1, { duration: 1000 });
 
     setTimeout(() => animation.current?.play(), 100);
-    setTimeout(() => router.replace("/onboarding"), 3500);
+    setTimeout(() => router.replace("/onboarding"), 2000); // ← 20s is excessive
   }, []);
 
   return (
@@ -39,19 +44,19 @@ export default function Splash() {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: isDark ? "#020617" : "#f1f5f9",
+        backgroundColor: theme.background, // ✅ from theme
       }}
     >
       <Animated.View style={animatedStyle}>
         <LottieView
-  ref={animation}
-  source={require("../assets/gradientBall.json")}
-  autoPlay
-  loop
-  resizeMode="contain"
-  renderMode="AUTOMATIC" // important
-  style={{ width: 260, height: 260 }}
-/>
+          ref={animation}
+          source={require("../assets/gradientBall.json")}
+          autoPlay
+          loop
+          resizeMode="contain"
+          renderMode="AUTOMATIC"
+          style={{ width: 260, height: 260 }}
+        />
       </Animated.View>
 
       <Animated.Text
@@ -61,7 +66,7 @@ export default function Splash() {
             marginTop: 24,
             fontSize: 28,
             fontWeight: "800",
-            color: isDark ? "#fff" : "#0f172a",
+            color: theme.foreground, // ✅ from theme
           },
         ]}
       >
