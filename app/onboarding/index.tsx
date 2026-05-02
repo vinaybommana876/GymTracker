@@ -20,42 +20,33 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { setOnboardingSeen } from "@/utils/onboardingStorage";
+import { useTheme } from "@/hooks/use-theme";
+
 const { width } = Dimensions.get("window");
+
 const slides = [
   {
-    title: "Track workouts with ease",
-    subtitle: "Your progress, stats, and routines all in one place.",
-    icon: "dumbbell",
-    accent: "#4FD1C5",
+    variant: "text",
+    title: "Empower Yourself With Quick Knowledge",
   },
   {
-    title: "Smart daily goals",
-    subtitle: "Push your limits with gentle reminders and streak tracking.",
-    icon: "target",
+    variant: "visual",
+    title: "Elevate Your Reading With Quick Insights",
+    subtitle: "Get bite-sized summaries and learn faster.",
+    icon: "book-open-variant",
     accent: "#60A5FA",
   },
   {
-    title: "Healthy nutrition support",
-    subtitle: "Build better habits with meal logging and macro guidance.",
-    icon: "food-apple",
-    accent: "#F59E0B",
-  },
-  {
-    title: "Live activity insights",
-    subtitle: "See your performance in real time and stay motivated.",
-    icon: "heart-pulse",
-    accent: "#EA580C",
-  },
-  {
-    title: "Built for every lifestyle",
-    subtitle: "A clean, premium interface designed for fast action.",
-    icon: "star-circle",
-    accent: "#A855F7",
+    variant: "human",
+    title: "Stay Motivated And Achieve Goals",
+    subtitle: "Build consistency and stay on track.",
   },
 ];
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
+/* ========================= DOT ========================= */
 function Dot({
   index,
   progress,
@@ -63,6 +54,8 @@ function Dot({
   index: number;
   progress: SharedValue<number>;
 }) {
+  const theme = useTheme();
+
   const animatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(
       progress.value,
@@ -77,19 +70,109 @@ function Dot({
       Extrapolate.CLAMP,
     );
 
-    return {
-      transform: [{ scale }],
-      opacity,
-    };
+    return { transform: [{ scale }], opacity };
   });
 
-  return <Animated.View style={[styles.dot, animatedStyle]} />;
+  return (
+    <Animated.View
+      style={[styles.dot, animatedStyle, { backgroundColor: theme.primary }]}
+    />
+  );
 }
+
+/* ========================= SLIDES ========================= */
+
+function TextSlide({ item }: any) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.textContainer}>
+      <Text style={[styles.bigTitle, { color: theme.foreground }]}>
+        Empower{"\n"}Yourself With{"\n"}
+        <Text style={{ color: theme.primary }}>Quick</Text>
+      </Text>
+    </View>
+  );
+}
+
+function VisualSlide({ item }: any) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.visualContainer}>
+      {/* STACKED CARDS */}
+      <View style={styles.stack}>
+        <View
+          style={[
+            styles.stackCard,
+            { transform: [{ rotate: "-8deg" }], backgroundColor: theme.secondary },
+          ]}
+        />
+        <View
+          style={[
+            styles.stackCard,
+            { transform: [{ rotate: "6deg" }], backgroundColor: theme.secondary },
+          ]}
+        />
+        <View
+          style={[
+            styles.mainCard,
+            { backgroundColor: item.accent },
+          ]}
+        />
+      </View>
+
+      <Text style={[styles.slideTitle, { color: theme.foreground }]}>
+        {item.title}
+      </Text>
+      <Text style={[styles.slideSubtitle, { color: theme.mutedForeground }]}>
+        {item.subtitle}
+      </Text>
+    </View>
+  );
+}
+
+function HumanSlide({ item }: any) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.humanContainer}>
+      <View style={styles.circleBg} />
+      <View
+        style={[styles.imagePlaceholder, { backgroundColor: theme.secondary }]}
+      />
+
+      <Text style={[styles.slideTitle, { color: theme.foreground }]}>
+        {item.title}
+      </Text>
+      <Text style={[styles.slideSubtitle, { color: theme.mutedForeground }]}>
+        {item.subtitle}
+      </Text>
+    </View>
+  );
+}
+
+function OnboardingSlide({ item }: any) {
+  switch (item.variant) {
+    case "text":
+      return <TextSlide item={item} />;
+    case "visual":
+      return <VisualSlide item={item} />;
+    case "human":
+      return <HumanSlide item={item} />;
+    default:
+      return null;
+  }
+}
+
+/* ========================= MAIN ========================= */
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const [page, setPage] = useState(0);
   const scrollRef = useRef<ScrollView | null>(null);
+
   const x = useSharedValue(0);
   const progress = useDerivedValue(() => x.value / width);
 
@@ -97,11 +180,16 @@ export default function OnboardingScreen() {
     x.value = event.contentOffset.x;
   });
 
+  const completeOnboarding = async () => {
+    await setOnboardingSeen();
+    router.replace("/(tabs)");
+  };
+
   const handleNext = () => {
     if (page < slides.length - 1) {
       scrollRef.current?.scrollTo({ x: width * (page + 1), animated: true });
     } else {
-      router.replace("/");
+      void completeOnboarding();
     }
   };
 
@@ -110,11 +198,9 @@ export default function OnboardingScreen() {
   }));
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* HEADER */}
       <Animated.View style={[styles.header, headerStyle]}>
-        <Text style={styles.skipText} onPress={() => router.replace("/")}>
-          Skip
-        </Text>
         <View style={styles.progressGroup}>
           {slides.map((_, index) => (
             <Dot key={index} index={index} progress={progress} />
@@ -122,6 +208,7 @@ export default function OnboardingScreen() {
         </View>
       </Animated.View>
 
+      {/* SLIDES */}
       <AnimatedScrollView
         ref={scrollRef}
         horizontal
@@ -138,173 +225,156 @@ export default function OnboardingScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {slides.map((item, index) => (
-          <View key={item.title} style={[styles.slide, { width }]}>
-            <View style={[styles.card, { borderColor: item.accent }]}>
-              <Animated.View
-                style={[
-                  styles.iconWrapper,
-                  { backgroundColor: item.accent + "20" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={
-                    item.icon as ComponentProps<
-                      typeof MaterialCommunityIcons
-                    >["name"]
-                  }
-                  size={62}
-                  color={item.accent}
-                />
-              </Animated.View>
-              <Text style={styles.slideTitle}>{item.title}</Text>
-              <Text style={styles.slideSubtitle}>{item.subtitle}</Text>
-              <View style={styles.badgeRow}>
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: item.accent + "22" },
-                  ]}
-                >
-                  <Text style={styles.badgeText}>Smooth UX</Text>
-                </View>
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: item.accent + "22" },
-                  ]}
-                >
-                  <Text style={styles.badgeText}>Animated</Text>
-                </View>
-              </View>
-            </View>
+          <View key={index} style={[styles.slide, { width }]}>
+            <OnboardingSlide item={item} />
           </View>
         ))}
       </AnimatedScrollView>
 
-      <View style={styles.footer}>
-        <Text style={styles.pageLabel}>
-          Step {page + 1} of {slides.length}
-        </Text>
-        <Pressable style={styles.button} onPress={handleNext}>
-          <Text style={styles.buttonText}>
-            {page === slides.length - 1 ? "Get Started" : "Next"}
-          </Text>
-        </Pressable>
-      </View>
+      {/* FLOATING BUTTON */}
+      <Pressable
+        style={[styles.fab, { backgroundColor: theme.primary }]}
+        onPress={handleNext}
+      >
+        <Text style={{ color: theme.primaryForeground, fontSize: 22 }}>→</Text>
+      </Pressable>
+
+      {/* SKIP */}
+      <Text
+        style={[styles.skipBottom, { color: theme.mutedForeground }]}
+        onPress={() => void completeOnboarding()}
+      >
+        Skip
+      </Text>
     </View>
   );
 }
 
+/* ========================= STYLES ========================= */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#060814",
     paddingTop: 48,
   },
+
   header: {
     paddingHorizontal: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 16,
   },
-  skipText: {
-    color: "#9CA3AF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+
   progressGroup: {
     flexDirection: "row",
     gap: 10,
+    justifyContent: "center",
   },
+
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#38BDF8",
-    marginHorizontal: 2,
   },
+
   scrollContent: {
     alignItems: "center",
   },
+
   slide: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     justifyContent: "center",
   },
-  card: {
+
+  /* TEXT */
+  textContainer: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 32,
-    padding: 28,
-    backgroundColor: "#0E1320",
     justifyContent: "center",
-    gap: 22,
   },
-  iconWrapper: {
-    width: 130,
-    height: 130,
-    borderRadius: 44,
+
+  bigTitle: {
+    fontSize: 38,
+    fontWeight: "800",
+    lineHeight: 46,
+  },
+
+  /* VISUAL */
+  visualContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    alignSelf: "center",
-    shadowColor: "#38BDF8",
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 14 },
+    gap: 20,
   },
+
+  stack: {
+    height: 220,
+    width: 220,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  stackCard: {
+    position: "absolute",
+    width: 180,
+    height: 220,
+    borderRadius: 20,
+  },
+
+  mainCard: {
+    width: 180,
+    height: 220,
+    borderRadius: 20,
+  },
+
+  /* HUMAN */
+  humanContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 20,
+  },
+
+  circleBg: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: "#38BDF820",
+  },
+
+  imagePlaceholder: {
+    width: 200,
+    height: 220,
+    borderRadius: 24,
+  },
+
+  /* TEXT COMMON */
   slideTitle: {
-    color: "#F8FAFC",
     fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
   },
+
   slideSubtitle: {
-    color: "#CBD5E1",
     fontSize: 16,
+    textAlign: "center",
     lineHeight: 24,
-    textAlign: "center",
   },
-  badgeRow: {
-    flexDirection: "row",
+
+  /* FAB */
+  fab: {
+    position: "absolute",
+    bottom: 40,
+    right: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: "center",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-  badge: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  badgeText: {
-    color: "#E0F2FE",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: "#060814",
-    borderTopWidth: 1,
-    borderTopColor: "#111827",
-  },
-  pageLabel: {
-    color: "#94A3B8",
-    textAlign: "center",
-    marginBottom: 14,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  button: {
-    width: "100%",
-    backgroundColor: "#38BDF8",
-    paddingVertical: 16,
-    borderRadius: 16,
     alignItems: "center",
-    justifyContent: "center",
   },
-  buttonText: {
-    color: "#020617",
-    fontSize: 17,
-    fontWeight: "700",
+
+  skipBottom: {
+    position: "absolute",
+    bottom: 50,
+    left: 24,
+    fontSize: 16,
   },
 });
