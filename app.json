@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "GymTracker",
-    "slug": "GymTracker",
+    "slug": "gymtracker",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -23,7 +23,8 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router",
@@ -43,6 +44,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "88a05602-c3d3-44b7-a408-1ea6d3e0c057"
+      }
+    },
+    "owner": "bommanavinay876"
   }
 }
