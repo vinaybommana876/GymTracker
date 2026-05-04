@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useRef, useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,13 +17,15 @@ import Animated, {
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
+  withDelay,
+  withRepeat,
   withTiming,
 } from "react-native-reanimated";
 
-import { setOnboardingSeen } from "@/utils/onboardingStorage";
 import { useTheme } from "@/hooks/use-theme";
+import { setOnboardingSeen } from "@/utils/onboardingStorage";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 const slides = [
   {
@@ -32,15 +34,15 @@ const slides = [
   },
   {
     variant: "visual",
-    title: "Elevate Your Reading With Quick Insights",
-    subtitle: "Get bite-sized summaries and learn faster.",
+    title: "Elevate Your Workouts",
+    subtitle: "Get personalized workout plans and build consistency every day.",
     icon: "book-open-variant",
     accent: "#60A5FA",
   },
   {
     variant: "human",
-    title: "Stay Motivated And Achieve Goals",
-    subtitle: "Build consistency and stay on track.",
+    title: "Stay Consistent And Achieve Your Goals 💪",
+    subtitle: "Stay motivated with streaks, insights, and real results that keep you going.",
   },
 ];
 
@@ -86,48 +88,34 @@ function TextSlide({ item }: any) {
   const theme = useTheme();
 
   return (
-    <View style={styles.textContainer}>
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text style={[styles.bigTitle, { color: theme.foreground }]}>
-        Empower{"\n"}Yourself With{"\n"}
-        <Text style={{ color: theme.primary }}>Quick</Text>
+        Your{"\n"}
+        <Text style={{ color: theme.primary }}>Fitness</Text> With{"\n"}
+        <Text style={{ color: theme.primary }}>Smart Training</Text>
       </Text>
     </View>
   );
 }
-
 function VisualSlide({ item }: any) {
   const theme = useTheme();
 
   return (
     <View style={styles.visualContainer}>
-      {/* STACKED CARDS */}
-      <View style={styles.stack}>
-        <View
-          style={[
-            styles.stackCard,
-            { transform: [{ rotate: "-8deg" }], backgroundColor: theme.secondary },
-          ]}
-        />
-        <View
-          style={[
-            styles.stackCard,
-            { transform: [{ rotate: "6deg" }], backgroundColor: theme.secondary },
-          ]}
-        />
-        <View
-          style={[
-            styles.mainCard,
-            { backgroundColor: item.accent },
-          ]}
-        />
-      </View>
+      <Image
+        source={require("@/assets/images/a.png")}
+        style={styles.visualImage}
+        resizeMode="contain"
+      />
 
-      <Text style={[styles.slideTitle, { color: theme.foreground }]}>
-        {item.title}
-      </Text>
-      <Text style={[styles.slideSubtitle, { color: theme.mutedForeground }]}>
-        {item.subtitle}
-      </Text>
+      <View style={styles.visualTextContainer}>
+        <Text style={[styles.slideTitle, { color: theme.foreground }]}> 
+          {item.title}
+        </Text>
+        <Text style={[styles.slideSubtitle, { color: theme.mutedForeground }]}> 
+          {item.subtitle}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -175,6 +163,19 @@ export default function OnboardingScreen() {
 
   const x = useSharedValue(0);
   const progress = useDerivedValue(() => x.value / width);
+  const hover = useSharedValue(0);
+  const wave = useSharedValue(0);
+  const wave2 = useSharedValue(0);
+
+  useEffect(() => {
+    hover.value = withRepeat(withTiming(1, { duration: 1200 }), -1, true);
+    wave.value = withRepeat(withTiming(1, { duration: 1400 }), -1, false);
+    wave2.value = withRepeat(
+      withDelay(700, withTiming(1, { duration: 1400 })),
+      -1,
+      false,
+    );
+  }, []);
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     x.value = event.contentOffset.x;
@@ -194,7 +195,42 @@ export default function OnboardingScreen() {
   };
 
   const headerStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(page === 0 ? 1 : 0.95, { duration: 300 }),
+    opacity: interpolate(progress.value, [0, 1], [1, 0.9]),
+  }));
+
+  const hoverStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: interpolate(hover.value, [0, 1], [0, -6]),
+      },
+      {
+        scale: interpolate(hover.value, [0, 1], [1, 1.025]),
+      },
+    ],
+  }));
+
+  const waveStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(wave.value, [0, 1], [1, 2.2]),
+      },
+    ],
+    opacity: interpolate(wave.value, [0, 0.7, 1], [0.4, 0.15, 0]),
+  }));
+
+  const waveStyle2 = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(wave2.value, [0, 1], [1, 2.6]),
+      },
+    ],
+    opacity: interpolate(wave2.value, [0, 0.7, 1], [0.25, 0.1, 0]),
+  }));
+
+  const fabAnimatedStyle = useAnimatedStyle(() => ({
+    position: "absolute",
+    bottom: 40,
+    right: 24,
   }));
 
   return (
@@ -232,12 +268,20 @@ export default function OnboardingScreen() {
       </AnimatedScrollView>
 
       {/* FLOATING BUTTON */}
-      <Pressable
-        style={[styles.fab, { backgroundColor: theme.primary }]}
-        onPress={handleNext}
-      >
-        <Text style={{ color: theme.primaryForeground, fontSize: 22 }}>→</Text>
-      </Pressable>
+      <Animated.View style={[styles.fabRoot, fabAnimatedStyle, hoverStyle]}>
+        <Animated.View
+          style={[styles.waveRing, waveStyle, { borderColor: theme.primary }]}
+        />
+        <Animated.View
+          style={[styles.waveRing, waveStyle2, { borderColor: theme.primary }]}
+        />
+        <Pressable
+          style={[styles.fab, { backgroundColor: theme.primary }]}
+          onPress={handleNext}
+        >
+          <Text style={{ color: theme.primaryForeground, fontSize: 22 }}>→</Text>
+        </Pressable>
+      </Animated.View>
 
       {/* SKIP */}
       <Text
@@ -279,29 +323,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  slide: {
-    paddingHorizontal: 24,
-    justifyContent: "center",
-  },
+ slide: {
+  flex: 1,
+  width,
+  paddingHorizontal: 24,
+},
 
   /* TEXT */
   textContainer: {
-    flex: 1,
-    justifyContent: "center",
-  },
+  justifyContent: "center",
+  alignItems: "center", // 👈 ADD
+  paddingTop: 80,
+},
 
-  bigTitle: {
-    fontSize: 38,
-    fontWeight: "800",
-    lineHeight: 46,
-  },
-
+ bigTitle: {
+  fontSize: 48,
+  fontWeight: "400",
+  lineHeight: 52,
+  textAlign: "center", // 👈 ADD
+},
   /* VISUAL */
   visualContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    gap: 20,
+    gap: 24,
+    paddingVertical: 20,
+  },
+
+  visualImage: {
+    width: 440,
+    height: 440,
+    borderRadius: 24,
+  },
+
+  visualTextContainer: {
+    width: "100%",
+    alignItems: "center",
+    paddingHorizontal: 12,
   },
 
   stack: {
@@ -348,27 +407,43 @@ const styles = StyleSheet.create({
 
   /* TEXT COMMON */
   slideTitle: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 32,
+    fontWeight: "600",
     textAlign: "center",
   },
 
   slideSubtitle: {
-    fontSize: 16,
+    fontSize: 24,
     textAlign: "center",
     lineHeight: 24,
   },
 
   /* FAB */
-  fab: {
+  fabRoot: {
     position: "absolute",
     bottom: 40,
     right: 24,
     width: 64,
     height: 64,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  waveRing: {
+    position: "absolute",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+  },
+
+  fab: {
+    width: 64,
+    height: 64,
     borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
+    elevation: 5, // Android shadow
   },
 
   skipBottom: {

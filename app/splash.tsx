@@ -14,7 +14,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/hooks/use-theme";
 
 // ✅ Correct import
-import { getOnboardingSeen } from "@/utils/onboardingStorage";
+import { getOnboardingSeen, resetOnboarding } from "@/utils/onboardingStorage";
+import { RESET_ONBOARDING_ON_START, DEBUG_ONBOARDING_FLOW } from "@/constants/devConfig";
 
 const { width } = Dimensions.get("window");
 
@@ -95,12 +96,32 @@ export default function Splash() {
 
     // 🚀 NAVIGATION (onboarding-aware)
     async function navigateNext() {
-      const seen = await getOnboardingSeen();
-      const nextRoute = seen ? "/(tabs)" : "/onboarding";
+      try {
+        // 🔄 Reset onboarding if enabled in devConfig
+        if (RESET_ONBOARDING_ON_START) {
+          await resetOnboarding();
+          if (DEBUG_ONBOARDING_FLOW) {
+            console.log("[Onboarding] Reset for fresh start");
+          }
+        }
 
-      setTimeout(() => {
-        router.replace(nextRoute);
-      }, 2500);
+        const seen = await getOnboardingSeen();
+        const nextRoute = seen ? "/(tabs)" : "/onboarding";
+        
+        if (DEBUG_ONBOARDING_FLOW) {
+          console.log(`[Onboarding] Seen: ${seen} → Route: ${nextRoute}`);
+        }
+
+        setTimeout(() => {
+          router.replace(nextRoute);
+        }, 2500);
+      } catch (error) {
+        console.error("[Splash] Navigation error:", error);
+        // Fallback: show onboarding on error
+        setTimeout(() => {
+          router.replace("/onboarding");
+        }, 2500);
+      }
     }
 
     void navigateNext();
