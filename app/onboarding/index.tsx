@@ -1,12 +1,12 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import type { SharedValue } from "react-native-reanimated";
@@ -25,8 +25,6 @@ import Animated, {
 import { useTheme } from "@/hooks/use-theme";
 import { setOnboardingSeen } from "@/utils/onboardingStorage";
 
-const { width, height } = Dimensions.get("window");
-
 const slides = [
   {
     variant: "text",
@@ -35,7 +33,7 @@ const slides = [
   {
     variant: "visual",
     title: "Elevate Your Workouts",
-    subtitle: "Get personalized workout plans and build consistency every day.",
+    subtitle: "Get workout plans and build consistency every day.",
     icon: "book-open-variant",
     accent: "#60A5FA",
   },
@@ -88,7 +86,7 @@ function TextSlide({ item }: any) {
   const theme = useTheme();
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+    <View style={styles.textContainer}>
       <Text style={[styles.bigTitle, { color: theme.foreground }]}>
         Your{"\n"}
         <Text style={{ color: theme.primary }}>Fitness</Text> With{"\n"}
@@ -99,12 +97,15 @@ function TextSlide({ item }: any) {
 }
 function VisualSlide({ item }: any) {
   const theme = useTheme();
+  const { width, height } = useWindowDimensions();
+  const imageWidth = Math.min(width * 0.8, 540);
+  const imageHeight = height*0.6;
 
   return (
     <View style={styles.visualContainer}>
       <Image
         source={require("@/assets/images/a.png")}
-        style={styles.visualImage}
+        style={[styles.visualImage, { width: imageWidth, height: imageHeight }]}
         resizeMode="contain"
       />
 
@@ -160,6 +161,7 @@ export default function OnboardingScreen() {
   const theme = useTheme();
   const [page, setPage] = useState(0);
   const scrollRef = useRef<ScrollView | null>(null);
+  const { width, height } = useWindowDimensions();
 
   const x = useSharedValue(0);
   const progress = useDerivedValue(() => x.value / width);
@@ -245,7 +247,8 @@ export default function OnboardingScreen() {
       </Animated.View>
 
       {/* SLIDES */}
-      <AnimatedScrollView
+     <View  style={[styles.sub]}>
+       <AnimatedScrollView
         ref={scrollRef}
         horizontal
         pagingEnabled
@@ -258,14 +261,23 @@ export default function OnboardingScreen() {
         }}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent]}
+        style={{ flex: 1 }}
       >
+        
         {slides.map((item, index) => (
-          <View key={index} style={[styles.slide, { width }]}>
+          <View
+            key={index}
+            style={[
+              styles.slide,
+              { width, minHeight: height * 0.74 },
+            ]}
+          >
             <OnboardingSlide item={item} />
           </View>
         ))}
       </AnimatedScrollView>
+     </View>
 
       {/* FLOATING BUTTON */}
       <Animated.View style={[styles.fabRoot, fabAnimatedStyle, hoverStyle]}>
@@ -299,12 +311,21 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 48,
+    // paddingTop: 48,
   },
 
   header: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingTop: 40,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    // marginBottom: 16,
+  },
+
+  sub: {
+    flex: 1,
   },
 
   progressGroup: {
@@ -320,40 +341,47 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    alignItems: "center",
+    alignItems: "flex-start",
+    position: "absolute",
+    top: 0,
+    left: 0,
   },
 
- slide: {
-  flex: 1,
-  width,
-  paddingHorizontal: 24,
-},
+  slide: {
+    justifyContent: "center",
+    flex: 1,
+    // flexDirection: "column",
+    // position: "relative",
+    // paddingHorizontal: 24,
+    paddingVertical: 24,
+  },
 
   /* TEXT */
   textContainer: {
-  justifyContent: "center",
-  alignItems: "center", // 👈 ADD
-  paddingTop: 80,
-},
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
 
- bigTitle: {
-  fontSize: 48,
+  bigTitle: {
+    fontSize: 48,
   fontWeight: "400",
   lineHeight: 52,
   textAlign: "center", // 👈 ADD
 },
   /* VISUAL */
   visualContainer: {
-    flex: 1,
+    // flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    gap: 24,
-    paddingVertical: 20,
+    paddingVertical: 24,
   },
 
   visualImage: {
-    width: 440,
-    height: 440,
+    width: "84%",
+    // maxWidth: 440,
+    aspectRatio: 0.6,
     borderRadius: 24,
   },
 
@@ -361,6 +389,7 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     paddingHorizontal: 12,
+    // marginTop: 24,
   },
 
   stack: {
@@ -389,6 +418,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 20,
+    paddingVertical: 28,
   },
 
   circleBg: {
@@ -400,22 +430,24 @@ const styles = StyleSheet.create({
   },
 
   imagePlaceholder: {
-    width: 200,
-    height: 220,
+    width: 220,
+    height: 260,
     borderRadius: 24,
   },
 
   /* TEXT COMMON */
   slideTitle: {
-    fontSize: 32,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "400",
     textAlign: "center",
   },
 
   slideSubtitle: {
-    fontSize: 24,
+    marginTop: 4,
+    fontSize: 20,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 28,
+    maxWidth: 340,
   },
 
   /* FAB */
